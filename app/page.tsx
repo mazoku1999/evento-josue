@@ -12,13 +12,26 @@ import { ModalAyuda } from "@/components/modals/modal-ayuda"
 import { EditorHeader } from "@/components/header/editor-header"
 import { CanvasArea } from "@/components/canvas/canvas-area"
 import { ZoomControls } from "@/components/controls/zoom-controls"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 export default function App() {
   const canvas = useCanvas()
   const isMac = useIsMac()
   const [mostrarModalEliminar, setMostrarModalEliminar] = useState(false)
   const [mostrarModalNombre, setMostrarModalNombre] = useState(false)
+
+  const [panelDerechoVisible, setPanelDerechoVisible] = useState(true)
+
+  useEffect(() => {
+    const saved = localStorage.getItem("panelDerechoVisible")
+    if (saved !== null) {
+      setPanelDerechoVisible(JSON.parse(saved))
+    }
+  }, [])
+
+  useEffect(() => {
+    localStorage.setItem("panelDerechoVisible", JSON.stringify(panelDerechoVisible))
+  }, [panelDerechoVisible])
 
   // Modal de configuración inicial
   if (!canvas.modoConfigurado) {
@@ -63,6 +76,8 @@ export default function App() {
           onExportarSVG={canvas.handleExportarSVG}
           onDescargarJSON={canvas.handleDescargarJSON}
           onMostrarAyuda={() => canvas.setMostrarAyudaAtajos(true)}
+          panelDerechoVisible={panelDerechoVisible}
+          setPanelDerechoVisible={setPanelDerechoVisible}
         />
 
         {/* ÁREA PRINCIPAL */}
@@ -118,28 +133,29 @@ export default function App() {
           />
         </div>
 
-        {/* PANEL DE PROPIEDADES */}
-        <PanelPropiedades
-          panelActivo={canvas.panelActivo}
-          setPanelActivo={canvas.setPanelActivo}
-          tipoMapa={canvas.tipoMapa}
-          sectores={canvas.sectores}
-          mesaActiva={canvas.mesaActiva}
-          idsSeleccionados={canvas.idsSeleccionados}
-          hayMesasBloqueadas={canvas.hayMesasBloqueadas}
-          limitesSlider={canvas.limitesSlider}
-          onActualizarMesa={canvas.actualizarMesa}
-          onActualizarDiametro={canvas.actualizarDiametro}
-          onToggleLado={canvas.toggleLado}
-          onToggleBloqueo={canvas.toggleBloqueo}
-          onDuplicar={canvas.duplicarMesasSeleccionadas}
-          onEliminar={() => setMostrarModalEliminar(true)}
-          onEditarNombre={() => setMostrarModalNombre(true)}
-          onAgregarSector={canvas.agregarSector}
-          onActualizarSector={canvas.actualizarSector}
-          onEliminarSector={canvas.eliminarSector}
-          onGuardarHistorial={canvas.guardarHistorial}
-        />
+        {panelDerechoVisible && (
+          <PanelPropiedades
+            panelActivo={canvas.panelActivo}
+            setPanelActivo={canvas.setPanelActivo}
+            tipoMapa={canvas.tipoMapa}
+            sectores={canvas.sectores}
+            mesaActiva={canvas.mesaActiva}
+            idsSeleccionados={canvas.idsSeleccionados}
+            hayMesasBloqueadas={canvas.hayMesasBloqueadas}
+            limitesSlider={canvas.limitesSlider}
+            onActualizarMesa={canvas.actualizarMesa}
+            onActualizarDiametro={canvas.actualizarDiametro}
+            onToggleLado={canvas.toggleLado}
+            onToggleBloqueo={canvas.toggleBloqueo}
+            onDuplicar={canvas.duplicarMesasSeleccionadas}
+            onEliminar={() => setMostrarModalEliminar(true)}
+            onEditarNombre={() => setMostrarModalNombre(true)}
+            onAgregarSector={canvas.agregarSector}
+            onActualizarSector={canvas.actualizarSector}
+            onEliminarSector={canvas.eliminarSector}
+            onGuardarHistorial={canvas.guardarHistorial}
+          />
+        )}
 
         {/* MODALES */}
         {mostrarModalEliminar && (

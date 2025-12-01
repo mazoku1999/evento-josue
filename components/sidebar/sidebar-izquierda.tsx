@@ -11,6 +11,8 @@ import {
   FileJson,
   FileImage,
   HelpCircle,
+  PanelRightOpen,
+  PanelRightClose,
 } from "lucide-react"
 import { TooltipProvider, Tooltip } from "@/components/ui/tooltip-custom"
 
@@ -75,6 +77,8 @@ interface SidebarIzquierdaProps {
   onExportarSVG: () => void
   onDescargarJSON: () => void
   onMostrarAyuda: () => void
+  panelDerechoVisible: boolean
+  setPanelDerechoVisible: (visible: boolean) => void
 }
 
 export function SidebarIzquierda({
@@ -93,20 +97,21 @@ export function SidebarIzquierda({
   onExportarSVG,
   onDescargarJSON,
   onMostrarAyuda,
+  panelDerechoVisible,
+  setPanelDerechoVisible,
 }: SidebarIzquierdaProps) {
   return (
     <TooltipProvider>
-      <div className="fixed left-0 top-0 h-full w-16 bg-white/90 backdrop-blur-lg shadow-xl flex flex-col items-center py-4 z-30">
+      <div className="fixed left-0 top-0 h-full w-16 bg-white/90 backdrop-blur-lg shadow-xl flex flex-col items-center py-4 z-30 overflow-y-auto">
         {/* HERRAMIENTAS SELECCION / MANO */}
-        <div className="w-full px-2 pb-3 flex flex-col items-center gap-1">
+        <div className="w-full px-2 pb-3 flex flex-col items-center gap-1 flex-shrink-0">
           <Tooltip label="Seleccionar y Mover" shortcut="V" isMac={isMac} position="right">
             <button
               onClick={() => setHerramienta("seleccion")}
-              className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
-                herramienta === "seleccion"
+              className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${herramienta === "seleccion"
                   ? "bg-indigo-100 text-indigo-600 ring-2 ring-indigo-200"
                   : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"
-              }`}
+                }`}
             >
               <MousePointer2 size={18} />
             </button>
@@ -114,11 +119,10 @@ export function SidebarIzquierda({
           <Tooltip label="Modo Mano" shortcut="H" isMac={isMac} position="right">
             <button
               onClick={() => setHerramienta("mano")}
-              className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
-                herramienta === "mano"
+              className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${herramienta === "mano"
                   ? "bg-indigo-100 text-indigo-600 ring-2 ring-indigo-200"
                   : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"
-              }`}
+                }`}
             >
               <Hand size={18} />
             </button>
@@ -126,10 +130,10 @@ export function SidebarIzquierda({
         </div>
 
         {/* SEPARADOR */}
-        <div className="w-10 h-px bg-slate-200 mb-3" />
+        <div className="w-10 h-px bg-slate-200 mb-3 flex-shrink-0" />
 
         {/* AGREGAR MESAS */}
-        <div className="w-full px-2 pb-3 flex flex-col items-center gap-1">
+        <div className="w-full px-2 pb-3 flex flex-col items-center gap-1 flex-shrink-0">
           <Tooltip label="Agregar Mesa Redonda" isMac={isMac} position="right">
             <button
               onClick={() => agregarMesa("circulo")}
@@ -149,18 +153,17 @@ export function SidebarIzquierda({
         </div>
 
         {/* SEPARADOR */}
-        <div className="w-10 h-px bg-slate-200 mb-3" />
+        <div className="w-10 h-px bg-slate-200 mb-3 flex-shrink-0" />
 
         {/* SECTORES */}
-        <div className="w-full px-2 pb-3 flex flex-col items-center gap-1">
+        <div className="w-full px-2 pb-3 flex flex-col items-center gap-1 flex-shrink-0">
           <Tooltip label="Gestionar Sectores" isMac={isMac} position="right">
             <button
               onClick={() => setPanelActivo("sectores")}
-              className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
-                panelActivo === "sectores"
+              className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${panelActivo === "sectores"
                   ? "bg-indigo-100 text-indigo-600 ring-2 ring-indigo-200"
                   : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"
-              }`}
+                }`}
             >
               {tipoMapa === "completo" ? <Layers size={18} /> : <Edit3 size={18} />}
             </button>
@@ -168,10 +171,10 @@ export function SidebarIzquierda({
         </div>
 
         {/* SEPARADOR */}
-        <div className="w-10 h-px bg-slate-200 mb-3" />
+        <div className="w-10 h-px bg-slate-200 mb-3 flex-shrink-0" />
 
         {/* IMAGEN DE FONDO */}
-        <div className="w-full px-2 flex flex-col items-center">
+        <div className="w-full px-2 flex flex-col items-center flex-shrink-0">
           {!imagenFondo ? (
             <Tooltip label="Añadir Imagen de Fondo" isMac={isMac} position="right">
               <button
@@ -194,10 +197,10 @@ export function SidebarIzquierda({
         </div>
 
         {/* SPACER */}
-        <div className="flex-1" />
+        <div className="flex-1 min-h-4" />
 
         {/* MENÚ DE DESCARGA Y AYUDA */}
-        <div className="flex flex-col gap-1 relative w-full px-2 pb-2">
+        <div className="flex flex-col gap-1 relative w-full px-2 pb-2 flex-shrink-0">
           {menuDescargaAbierto && (
             <div className="absolute bottom-full left-2 mb-2 w-48 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden animate-in slide-in-from-bottom-2 fade-in duration-200 z-50">
               <button
@@ -227,14 +230,25 @@ export function SidebarIzquierda({
             </div>
           )}
 
+          <Tooltip label={panelDerechoVisible ? "Ocultar Panel" : "Mostrar Panel"} isMac={isMac} position="right">
+            <button
+              onClick={() => setPanelDerechoVisible(!panelDerechoVisible)}
+              className={`w-10 h-10 mx-auto rounded-lg flex items-center justify-center transition-all ${panelDerechoVisible
+                  ? "bg-indigo-100 text-indigo-600 ring-2 ring-indigo-200"
+                  : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"
+                }`}
+            >
+              {panelDerechoVisible ? <PanelRightClose size={18} /> : <PanelRightOpen size={18} />}
+            </button>
+          </Tooltip>
+
           <Tooltip label="Exportar Plano" isMac={isMac} position="right">
             <button
               onClick={() => setMenuDescargaAbierto(!menuDescargaAbierto)}
-              className={`w-10 h-10 mx-auto rounded-lg flex items-center justify-center transition-all ${
-                menuDescargaAbierto
+              className={`w-10 h-10 mx-auto rounded-lg flex items-center justify-center transition-all ${menuDescargaAbierto
                   ? "bg-indigo-100 text-indigo-600 ring-2 ring-indigo-200"
                   : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"
-              }`}
+                }`}
             >
               <Download size={18} />
             </button>
