@@ -739,7 +739,6 @@ export function useCanvas(): UseCanvasReturn {
 
       const touches = e.touches
 
-      // Pinch-to-zoom con 2 dedos
       if (touches.length === 2) {
         const dx = touches[0].clientX - touches[1].clientX
         const dy = touches[0].clientY - touches[1].clientY
@@ -748,21 +747,25 @@ export function useCanvas(): UseCanvasReturn {
           x: (touches[0].clientX + touches[1].clientX) / 2,
           y: (touches[0].clientY + touches[1].clientY) / 2,
         }
+        // Iniciar pan desde el centro de los dos dedos
+        setIsPanning(true)
+        panStart.current = {
+          x: lastTouchCenter.current.x - pan.x,
+          y: lastTouchCenter.current.y - pan.y,
+        }
         return
       }
 
       // Un solo dedo
       if (touches.length === 1) {
         const touch = touches[0]
+        const touchPos = getTouchPos(touch.clientX, touch.clientY)
 
-        // Si herramienta mano o toque en lienzo sin mesa -> pan
-        if (herramientaActiva === "mano" || (tipo === "lienzo" && !mesa)) {
+        if (herramientaActiva === "mano") {
           setIsPanning(true)
           panStart.current = { x: touch.clientX - pan.x, y: touch.clientY - pan.y }
           return
         }
-
-        const touchPos = getTouchPos(touch.clientX, touch.clientY)
 
         if (tipo === "mesa" && mesa) {
           e.stopPropagation()
@@ -774,21 +777,33 @@ export function useCanvas(): UseCanvasReturn {
           }
 
           tomarSnapshot()
-          setIdsSeleccionados([mesa.id])
+
+          let nuevosIdsSeleccionados = [...idsSeleccionados]
+          if (!idsSeleccionados.includes(mesa.id)) {
+            nuevosIdsSeleccionados = [mesa.id]
+          }
+
+          setIdsSeleccionados(nuevosIdsSeleccionados)
           setArrastrandoMesa(true)
           setPanelActivo("propiedades")
           setIdMesaArrastradaPrincipal(mesa.id)
 
+          // Calcular offsets para todas las mesas seleccionadas
           const offsets: { [key: string]: { x: number; y: number } } = {}
-          offsets[mesa.id] = { x: touchPos.x - mesa.x, y: touchPos.y - mesa.y }
+          mesas.forEach((m) => {
+            if (nuevosIdsSeleccionados.includes(m.id)) {
+              offsets[m.id] = { x: touchPos.x - m.x, y: touchPos.y - m.y }
+            }
+          })
           setOffsetsMesas(offsets)
         } else if (tipo === "lienzo") {
           setIdsSeleccionados([])
+          setCajaSeleccion({ startX: touchPos.x, startY: touchPos.y, currentX: touchPos.x, currentY: touchPos.y })
           setMenuDescargaAbierto(false)
         }
       }
     },
-    [herramientaActiva, pan, getTouchPos, tomarSnapshot],
+    [herramientaActiva, pan, getTouchPos, tomarSnapshot, idsSeleccionados, mesas],
   )
 
   const alMoverTouch = useCallback(
@@ -796,17 +811,32 @@ export function useCanvas(): UseCanvasReturn {
       e.preventDefault()
       const touches = e.touches
 
-      // Pinch-to-zoom
-      if (touches.length === 2 && lastTouchDistance.current !== null) {
+      if (touches.length === 2) {
         const dx = touches[0].clientX - touches[1].clientX
         const dy = touches[0].clientY - touches[1].clientY
         const newDistance = Math.hypot(dx, dy)
+        const newCenter = {
+          x: (touches[0].clientX + touches[1].clientX) / 2,
+          y: (touches[0].clientY + touches[1].clientY) / 2,
+        }
 
-        const scale = newDistance / lastTouchDistance.current
-        const newZoom = Math.min(Math.max(zoom * scale, 0.1), 3)
+        // Zoom con pinch
+        if (lastTouchDistance.current !== null) {
+          const scale = newDistance / lastTouchDistance.current
+          const newZoom = Math.min(Math.max(zoom * scale, 0.1), 3)
+          setZoom(newZoom)
+          lastTouchDistance.current = newDistance
+        }
 
-        setZoom(newZoom)
-        lastTouchDistance.current = newDistance
+        // Pan con movimiento del centro
+        if (isPanning) {
+          setPan({
+            x: newCenter.x - panStart.current.x,
+            y: newCenter.y - panStart.current.y,
+          })
+        }
+
+        lastTouchCenter.current = newCenter
         return
       }
 
@@ -814,6 +844,7 @@ export function useCanvas(): UseCanvasReturn {
       if (touches.length === 1) {
         const touch = touches[0]
 
+        // Pan si está en modo pan
         if (isPanning) {
           setPan({
             x: touch.clientX - panStart.current.x,
@@ -905,17 +936,58 @@ export function useCanvas(): UseCanvasReturn {
           const deltaY = nuevoY - mesaPrincipal.y
 
           setMesas((prev) =>
-            prev.map((m) => (idsSeleccionados.includes(m.id) ? { ...m, x: m.x + deltaX, y: m.y + deltaY } : m)),
+            prev.map((m) => {
+              if (idsSeleccionados.includes(m.id) && !m.bloqueada) {
+                return { ...m, x: m.x + deltaX, y: m.y + deltaY }
+              }
+              return m
+            }),
           )
+        } else if (cajaSeleccion) {
+          setCajaSeleccion({ ...cajaSeleccion, currentX: touchPos.x, currentY: touchPos.y })
         }
       }
     },
-    [isPanning, getTouchPos, arrastrandoMesa, idsSeleccionados, mesas, idMesaArrastradaPrincipal, offsetsMesas, zoom],
+    [
+      isPanning,
+      getTouchPos,
+      arrastrandoMesa,
+      idsSeleccionados,
+      mesas,
+      idMesaArrastradaPrincipal,
+      offsetsMesas,
+      zoom,
+      cajaSeleccion,
+    ],
   )
 
   const alSoltarTouch = useCallback(() => {
     lastTouchDistance.current = null
     lastTouchCenter.current = null
+
+    if (cajaSeleccion) {
+      const x1 = Math.min(cajaSeleccion.startX, cajaSeleccion.currentX)
+      const x2 = Math.max(cajaSeleccion.startX, cajaSeleccion.currentX)
+      const y1 = Math.min(cajaSeleccion.startY, cajaSeleccion.currentY)
+      const y2 = Math.max(cajaSeleccion.startY, cajaSeleccion.currentY)
+
+      const mesasEnCaja = mesas
+        .filter((m) => {
+          const escala = m.escala || 1
+          const ancho = m.ancho * escala
+          const alto = m.alto * escala
+          const mesaLeft = m.x - ancho / 2
+          const mesaRight = m.x + ancho / 2
+          const mesaTop = m.y - alto / 2
+          const mesaBottom = m.y + alto / 2
+
+          return !(mesaRight < x1 || mesaLeft > x2 || mesaBottom < y1 || mesaTop > y2)
+        })
+        .map((m) => m.id)
+
+      setIdsSeleccionados((prev) => [...new Set([...prev, ...mesasEnCaja])])
+      setCajaSeleccion(null)
+    }
 
     if (arrastrandoMesa) {
       confirmarSnapshotSiHuboCambios()
@@ -924,7 +996,8 @@ export function useCanvas(): UseCanvasReturn {
     setArrastrandoMesa(false)
     setIsPanning(false)
     setGuias([])
-  }, [arrastrandoMesa, confirmarSnapshotSiHuboCambios])
+    setIdMesaArrastradaPrincipal(null)
+  }, [cajaSeleccion, mesas, arrastrandoMesa, confirmarSnapshotSiHuboCambios])
 
   // --- IO ---
   const manejarSubidaImagen = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
